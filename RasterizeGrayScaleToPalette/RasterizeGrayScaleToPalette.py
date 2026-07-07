@@ -37,7 +37,7 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path):
 
 	# choose row from palette
 	row = int(np.clip(scale, 0.0, 1.0) * (ph - 1))
-	palette_row = palette_rgb[row]  # shape (width, 3)
+	palette_row = palette_rgb[row + 1]  # shape (width, 3)
 
 	# if palette width != 256 and grayscale uses 0..255, scale indices
 	# map grayscale values (0..255) to columns 0..pw-1
