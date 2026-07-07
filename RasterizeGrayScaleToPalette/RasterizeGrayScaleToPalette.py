@@ -77,7 +77,7 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path):
 
 def main():
 	if len(argv) != 6:
-		print("Usage: script.py path\to\texconv.exe grayscale.bmp palette.bmp scale(0.0-1.0) out.png")
+		print("Usage: RasterizeGrayScaleToPalette.py path\to\texconv.exe grayscale.dds palette.dds scale(0.0-1.0) out.dds")
 		return
 	texconv = argv[1]
 	gpath = argv[2]
