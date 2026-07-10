@@ -1,11 +1,11 @@
+import subprocess
 from sys import argv
 import numpy as np
 import imageio.v3 as iio
-import os
-from tempfile import mkdtemp
-from subprocess import check_call, CalledProcessError
+from PIL import Image, UnidentifiedImageError
+from os.path import splitext
 
-def apply_palette(texconv, grayscale_path, palette_path, scale, out_path):
+def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_size, dds_format):
 	"""Apply a palette row to a grayscale image.
 
 	grayscale_path: path to grayscale
@@ -14,8 +14,10 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path):
 	out_path: output path
 	"""
 	# read images
-	g = iio.imread(grayscale_path)
-	p = iio.imread(palette_path)
+	grayscale = load_dds_safe(grayscale_path, texconv)
+	g = np.array(grayscale)
+	palette = load_dds_safe(palette_path, texconv)
+	p = np.array(palette)
 
 	# ensure grayscale is single channel 0..255
 	if g.ndim == 3:
@@ -36,8 +38,8 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path):
 	pw = palette_rgb.shape[1]
 
 	# choose row from palette
-	row = int(np.clip(scale, 0.0, 1.0) * (ph - 1))
-	palette_row = palette_rgb[row + 1]  # shape (width, 3)
+	row = round(np.clip(scale, 0.0, 1.0) * (ph - 1))
+	palette_row = palette_rgb[row]  # shape (width, 3)
 
 	# if palette width != 256 and grayscale uses 0..255, scale indices
 	# map grayscale values (0..255) to columns 0..pw-1
@@ -45,46 +47,47 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path):
 
 	# build colored image
 	h, w = g.shape
+	
 	out = np.zeros((h, w, 3), dtype=np.uint8)
 	out[..., 0] = palette_row[indices, 0]
 	out[..., 1] = palette_row[indices, 1]
 	out[..., 2] = palette_row[indices, 2]
 
-	# write temp file
-	tmpdir = mkdtemp()
-	tmp_png = os.path.join(tmpdir, 'tmp_out.png')
+	size = max(h,w)
+	while size > max_size:
+		h = h // 2
+		w = w // 2
+		size = max(h,w)
 
-	iio.imwrite(tmp_png, out, format='png')
+	resized_image = Image.fromarray(out).resize((w, h), Image.LANCZOS)
+	final_image = np.array(resized_image)
 
-	out_dir = os.path.dirname(os.path.abspath(out_path)) or os.getcwd()
-	try:
-		check_call([texconv, '-ft', 'dds', '-f', 'BC3_UNORM', '-y', '-o', out_dir, tmp_png])
-	except CalledProcessError as e:
-		print('texconv failed:', e)
-		return 1
-
-	# texconv writes tmp_out.dds in out_dir; move/rename to requested out_path
-	base_name = os.path.splitext(os.path.basename(tmp_png))[0] + '.dds'
-	produced = os.path.join(out_dir, base_name)
-	if os.path.exists(produced):
-		os.replace(produced, out_path)
-		print('Wrote', out_path)
-		return 0
-	else:
-		print('Expected output not found. Check texconv output in', out_dir)
-		return 1
-
+	iio.imwrite(out_path, final_image, format='dds', compression=dds_format)
 
 def main():
-	if len(argv) != 6:
-		print("Usage: RasterizeGrayScaleToPalette.py path\to\texconv.exe grayscale.dds palette.dds scale(0.0-1.0) out.dds")
+	if len(argv) != 8:
+		print("Usage: RasterizeGrayScaleToPalette.py path\\to\\texconv.exe grayscale.dds palette.dds scale(0.0-1.0) out.dds 1024 dxt5")
 		return
 	texconv = argv[1]
 	gpath = argv[2]
 	ppath = argv[3]
 	scale = float(argv[4])
 	out = argv[5]
-	apply_palette(texconv, gpath, ppath, scale, out)
+	max_size = int(argv[6])
+	dds_format = argv[7]
+	apply_palette(texconv, gpath, ppath, scale, out, max_size, dds_format)
+
+def load_dds_safe(path, texconv):
+	# Try direct load (will fail for BC7)
+	try:
+		return Image.open(path)
+	except UnidentifiedImageError:
+		pass
+
+	# Fallback: decompress with texconv
+	subprocess.check_call([texconv, "-y", "-ft", "png", path], shell=False)
+	Image.open(splitext(path)[0] + '.png')
+
 
 
 if __name__ == '__main__':
