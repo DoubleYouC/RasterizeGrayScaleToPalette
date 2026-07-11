@@ -19,10 +19,19 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_si
 	palette = load_dds_safe(palette_path, texconv)
 	p = np.array(palette)
 
-	# ensure grayscale is single channel 0..255
-	if g.ndim == 3:
-		# assume RGB where channels are equal
-		g = g[..., 0]
+	# ensure grayscale is single channel 0..255 while preserving alpha when present
+	alpha = None
+	if g.ndim == 2:
+		g = g.astype(np.uint8)
+	elif g.ndim == 3:
+		if g.shape[2] == 2:
+			alpha = g[..., 1].astype(np.uint8)
+			g = g[..., 0]
+		elif g.shape[2] == 4:
+			alpha = g[..., 3].astype(np.uint8)
+			g = g[..., 0]
+		else:
+			g = g[..., 0]
 	g = g.astype(np.uint8)
 
 	# palette should be H x W x C
@@ -47,11 +56,18 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_si
 
 	# build colored image
 	h, w = g.shape
-	
-	out = np.zeros((h, w, 3), dtype=np.uint8)
-	out[..., 0] = palette_row[indices, 0]
-	out[..., 1] = palette_row[indices, 1]
-	out[..., 2] = palette_row[indices, 2]
+
+	if alpha is not None:
+		out = np.zeros((h, w, 4), dtype=np.uint8)
+		out[..., 0] = palette_row[indices, 0]
+		out[..., 1] = palette_row[indices, 1]
+		out[..., 2] = palette_row[indices, 2]
+		out[..., 3] = alpha
+	else:
+		out = np.zeros((h, w, 3), dtype=np.uint8)
+		out[..., 0] = palette_row[indices, 0]
+		out[..., 1] = palette_row[indices, 1]
+		out[..., 2] = palette_row[indices, 2]
 
 	size = max(h,w)
 	while size > max_size:
@@ -86,7 +102,7 @@ def load_dds_safe(path, texconv):
 
 	# Fallback: decompress with texconv
 	subprocess.check_call([texconv, "-y", "-ft", "png", path], shell=False)
-	Image.open(splitext(path)[0] + '.png')
+	return Image.open(splitext(path)[0] + '.png')
 
 
 
