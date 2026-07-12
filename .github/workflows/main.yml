@@ -36,8 +36,11 @@ jobs:
     - name: Copy additional files
       shell: pwsh
       run: |
-        Copy-Item "${{ github.workspace }}/LICENSE.txt" "${{ github.workspace }}/RasterizeGrayScaleToPalette/dist/LICENSE.txt" -Force
-        Copy-Item "${{ github.workspace }}/README.md" "${{ github.workspace }}/RasterizeGrayScaleToPalette/dist/README.md" -Force
+        $distDir = Join-Path "${{ github.workspace }}" "RasterizeGrayScaleToPalette/dist"
+        New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+
+        Copy-Item -LiteralPath (Join-Path "${{ github.workspace }}" "LICENSE.txt") -Destination (Join-Path $distDir "LICENSE.txt") -Force
+        Copy-Item -LiteralPath (Join-Path "${{ github.workspace }}" "README.md") -Destination (Join-Path $distDir "README.md") -Force
 
 
     - name: Upload a Build Artifact
