@@ -1,0 +1,52 @@
+name: Build with PyInstaller
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+
+  pyinstaller-build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.2.2
+
+    - name: Setup Python
+      uses: actions/setup-python@v5.4.0
+      with:
+        python-version: '3.11.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Install PyInstaller
+      run: pip install pyinstaller
+
+    - name: Build with PyInstaller
+      run: pyinstaller RasterizeGrayScaleToPalette/RasterizeGrayScaleToPalette.spec
+
+    - name: Copy additional files
+      shell: powershell
+      run: |
+        $workspace = $env:GITHUB_WORKSPACE
+
+        # Copy top level files
+        $src = Join-Path $workspace 'LICENSE.txt'
+        $dst = Join-Path $workspace 'RasterizeGrayScaleToPalette\dist\LICENSE.txt'
+        Copy-Item -LiteralPath $src -Destination $dst -Force
+
+        $src = Join-Path $workspace 'README.md'
+        $dst = Join-Path $workspace 'RasterizeGrayScaleToPalette\dist\README.md'
+        Copy-Item -LiteralPath $src -Destination $dst -Force
+
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.6.1
+      with:
+        name: RasterizeGrayScaleToPalette-windows
+        path: RasterizeGrayScaleToPalette/dist
