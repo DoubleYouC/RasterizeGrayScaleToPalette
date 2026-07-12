@@ -2,8 +2,11 @@ name: Build with PyInstaller
 
 on:
   push:
-    branches:
-      - release
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
 
@@ -50,3 +53,12 @@ jobs:
       with:
         name: RasterizeGrayScaleToPalette-windows
         path: RasterizeGrayScaleToPalette/dist
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        files: |
+          RasterizeGrayScaleToPalette/dist/**
+        generate_release_notes: true
