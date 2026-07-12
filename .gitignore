@@ -366,3 +366,4 @@ build/
 dist/
 out.dds
 RasterizeGrayScaleToPalette.exe
+/RasterizeGrayScaleToPalette/env
