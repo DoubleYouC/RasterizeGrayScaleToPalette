@@ -3,7 +3,7 @@ from sys import argv
 import numpy as np
 import imageio.v3 as iio
 from PIL import Image, UnidentifiedImageError
-from os.path import splitext
+from os.path import splitext, dirname
 
 def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_size, dds_format):
 	"""Apply a palette row to a grayscale image.
@@ -76,13 +76,18 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_si
 		size = max(h,w)
 
 	resized_image = Image.fromarray(out).resize((w, h), Image.LANCZOS)
+
 	final_image = np.array(resized_image)
 
-	iio.imwrite(out_path, final_image, format='dds', compression=dds_format)
+	iio.imwrite(out_path, final_image, format='dds')
+
+	folder = dirname(out_path)
+
+	subprocess.check_call([texconv, "-nologo", "-y", "-m", "1", "-f", dds_format, "ft", "dds", "-o", folder, out_path], shell=False)
 
 def main():
 	if len(argv) != 8:
-		print("Usage: RasterizeGrayScaleToPalette.py path\\to\\texconv.exe grayscale.dds palette.dds scale(0.0-1.0) out.dds 1024 dxt5")
+		print("Usage: RasterizeGrayScaleToPalette.py path\\to\\texconv.exe grayscale.dds palette.dds scale(0.0-1.0) out.dds 1024 BC3_UNORM")
 		return
 	texconv = argv[1]
 	gpath = argv[2]
@@ -101,7 +106,8 @@ def load_dds_safe(path, texconv):
 		pass
 
 	# Fallback: decompress with texconv
-	subprocess.check_call([texconv, "-y", "-ft", "png", path], shell=False)
+	folder = dirname(path)
+	subprocess.check_call([texconv, "-nologo", "-y", "-ft", "png", "-o", folder, path], shell=False)
 	return Image.open(splitext(path)[0] + '.png')
 
 
