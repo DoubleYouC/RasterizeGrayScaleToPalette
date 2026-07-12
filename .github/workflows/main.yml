@@ -34,18 +34,10 @@ jobs:
       run: pyinstaller RasterizeGrayScaleToPalette/RasterizeGrayScaleToPalette.spec
 
     - name: Copy additional files
-      shell: powershell
+      shell: pwsh
       run: |
-        $workspace = $env:GITHUB_WORKSPACE
-
-        # Copy top level files
-        $src = Join-Path $workspace 'LICENSE.txt'
-        $dst = Join-Path $workspace 'RasterizeGrayScaleToPalette\dist\LICENSE.txt'
-        Copy-Item -LiteralPath $src -Destination $dst -Force
-
-        $src = Join-Path $workspace 'README.md'
-        $dst = Join-Path $workspace 'RasterizeGrayScaleToPalette\dist\README.md'
-        Copy-Item -LiteralPath $src -Destination $dst -Force
+        Copy-Item "${{ github.workspace }}/LICENSE.txt" "${{ github.workspace }}/RasterizeGrayScaleToPalette/dist/LICENSE.txt" -Force
+        Copy-Item "${{ github.workspace }}/README.md" "${{ github.workspace }}/RasterizeGrayScaleToPalette/dist/README.md" -Force
 
 
     - name: Upload a Build Artifact
