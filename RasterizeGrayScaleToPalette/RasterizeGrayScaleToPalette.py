@@ -1,9 +1,11 @@
+from ast import Try
 import subprocess
 from sys import argv
 import numpy as np
 import imageio.v3 as iio
 from PIL import Image, UnidentifiedImageError
 from os.path import splitext, dirname
+import time
 
 def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_size, dds_format):
 	"""Apply a palette row to a grayscale image.
@@ -79,7 +81,12 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_si
 
 	final_image = np.array(resized_image)
 
-	iio.imwrite(out_path, final_image, format='dds')
+	try:
+		iio.imwrite(out_path, final_image, format='dds')
+	except PermissionError:
+		#Try again in 5 seconds. Could be a temporary issue.
+		time.sleep(5)
+		iio.imwrite(out_path, final_image, format='dds')
 
 	folder = dirname(out_path)
 
