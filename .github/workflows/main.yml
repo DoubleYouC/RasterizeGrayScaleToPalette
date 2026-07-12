@@ -31,12 +31,14 @@ jobs:
       run: pip install pyinstaller
 
     - name: Build with PyInstaller
-      run: pyinstaller RasterizeGrayScaleToPalette/RasterizeGrayScaleToPalette.spec
+      working-directory: RasterizeGrayScaleToPalette
+      run: pyinstaller RasterizeGrayScaleToPalette.spec
 
     - name: Copy additional files
       shell: pwsh
       run: |
-        $distDir = Join-Path "${{ github.workspace }}" "RasterizeGrayScaleToPalette/dist"
+        $projectDir = Join-Path "${{ github.workspace }}" "RasterizeGrayScaleToPalette"
+        $distDir = Join-Path $projectDir "dist"
         New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 
         Copy-Item -LiteralPath (Join-Path "${{ github.workspace }}" "LICENSE.txt") -Destination (Join-Path $distDir "LICENSE.txt") -Force
@@ -46,7 +48,7 @@ jobs:
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v7
       with:
-        name: RasterizeGrayScaleToPalette-windows
+        name: RasterizeGrayScaleToPalette
         path: RasterizeGrayScaleToPalette/dist
 
     - name: Create GitHub Release
