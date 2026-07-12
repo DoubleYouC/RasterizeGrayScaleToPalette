@@ -83,7 +83,12 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_si
 
 	folder = dirname(out_path)
 
-	subprocess.check_call([texconv, "-nologo", "-y", "-m", "1", "-f", dds_format, "ft", "dds", "-o", folder, out_path], shell=False)
+	try:
+		subprocess.check_call([texconv, "-nologo", "-y", "-m", "1", "-f", dds_format, "-ft", "dds", "-o", folder, out_path], creationflags=0x08000000, shell=False)
+	except FileNotFoundError as exc:
+		raise RuntimeError(f"texconv executable not found: {texconv}") from exc
+	except subprocess.CalledProcessError as exc:
+		raise RuntimeError(f"texconv failed for {out_path} with exit code {exc.returncode}") from exc
 
 def main():
 	if len(argv) != 8:
@@ -102,12 +107,17 @@ def load_dds_safe(path, texconv):
 	# Try direct load (will fail for BC7)
 	try:
 		return Image.open(path)
-	except UnidentifiedImageError:
+	except (UnidentifiedImageError, OSError):
 		pass
 
 	# Fallback: decompress with texconv
 	folder = dirname(path)
-	subprocess.check_call([texconv, "-nologo", "-y", "-ft", "png", "-o", folder, path], shell=False)
+	try:
+		subprocess.check_call([texconv, "-nologo", "-y", "-ft", "png", "-o", folder, path], creationflags=0x08000000, shell=False)
+	except FileNotFoundError as exc:
+		raise RuntimeError(f"texconv executable not found: {texconv}") from exc
+	except subprocess.CalledProcessError as exc:
+		raise RuntimeError(f"texconv failed for {path} with exit code {exc.returncode}") from exc
 	return Image.open(splitext(path)[0] + '.png')
 
 
