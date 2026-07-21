@@ -367,3 +367,6 @@ dist/
 out.dds
 RasterizeGrayScaleToPalette.exe
 /RasterizeGrayScaleToPalette/env
+/RasterizeGrayScaleToPalette/palette.dds
+/RasterizeGrayScaleToPalette/grayscale.DDS
+/RasterizeGrayScaleToPalette/grayscale.png
