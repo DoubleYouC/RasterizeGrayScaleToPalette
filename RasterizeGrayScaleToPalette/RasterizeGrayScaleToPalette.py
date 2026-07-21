@@ -115,9 +115,8 @@ def reverse_palette(texconv, input_paths, grayscale_out_path, palette_out_path, 
 	shared_gray = np.mean(np.stack(gray_arrays, axis=0), axis=0).round().astype(np.uint8)
 	shared_alpha = np.mean(np.stack(alpha_arrays, axis=0), axis=0).round().astype(np.uint8)
 
-	# Build one palette row per input texture.
-	channels = resized_arrays[0].shape[2]
-	palette_rows = np.zeros((len(resized_arrays), palette_limit, channels), dtype=np.uint8)
+	# Build one RGB palette row per input texture. Alpha is ignored because it is shared and not part of the color mapping.
+	palette_rows = np.zeros((len(resized_arrays), palette_limit, 3), dtype=np.uint8)
 	for idx, arr in enumerate(resized_arrays):
 		palette_rows[idx] = build_palette_row(arr, shared_gray, palette_limit)
 
@@ -126,13 +125,22 @@ def reverse_palette(texconv, input_paths, grayscale_out_path, palette_out_path, 
 
 
 def build_palette_row(color_image, shared_gray, palette_limit=256):
-	"""Create a palette row that preserves overall color relationships without overfitting to a single pixel."""
-	flat_color = color_image.reshape(-1, color_image.shape[2]).astype(np.float32)
+	"""Create an RGB palette row that preserves color relationships and ignores alpha."""
+	if color_image.ndim == 2:
+		rgb_image = np.stack([color_image, color_image, color_image], axis=-1)
+	elif color_image.shape[2] >= 3:
+		rgb_image = color_image[..., :3]
+	elif color_image.shape[2] == 2:
+		rgb_image = np.stack([color_image[..., 0], color_image[..., 1], color_image[..., 0]], axis=-1)
+	else:
+		rgb_image = np.repeat(color_image[..., 0][..., None], 3, axis=-1)
+
+	flat_color = rgb_image.reshape(-1, 3).astype(np.float32)
 	flat_gray = shared_gray.reshape(-1)
 	if flat_color.shape[0] == 0:
-		return np.full((palette_limit, color_image.shape[2]), 127, dtype=np.uint8)
+		return np.full((palette_limit, 3), 127, dtype=np.uint8)
 
-	palette = np.zeros((palette_limit, color_image.shape[2]), dtype=np.float32)
+	palette = np.zeros((palette_limit, 3), dtype=np.float32)
 	target_grays = np.linspace(0, 255, palette_limit).round().astype(int)
 	for idx, target in enumerate(target_grays):
 		mask = (flat_gray >= max(0, target - 8)) & (flat_gray <= min(255, target + 8))
