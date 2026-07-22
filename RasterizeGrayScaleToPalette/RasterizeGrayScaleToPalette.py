@@ -18,7 +18,10 @@ def apply_palette(texconv, grayscale_path, palette_path, scale, out_path, max_si
 	"""
 	# read images
 	grayscale = load_dds_safe(grayscale_path, texconv)
-	g = np.array(grayscale)
+	try:
+		g = np.array(grayscale)
+	except (OSError):
+		raise Exception(f"Image failed to load: {grayscale_path}")
 	palette = load_dds_safe(palette_path, texconv)
 	p = np.array(palette)
 
