@@ -274,7 +274,7 @@ def load_dds_safe(path, texconv):
 	# Try direct load (will fail for BC7)
 	try:
 		return Image.open(path)
-	except (UnidentifiedImageError, OSError):
+	except (UnidentifiedImageError, OSError, NotImplementedError):
 		pass
 
 	# Fallback: decompress with texconv
